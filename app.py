@@ -421,7 +421,16 @@ def render_week_grid(tasks, plan_preview, week_dates, theme, calendar_events=Non
         except (ValueError, KeyError):
             continue
 
+    def task_onclick(task_id):
+        return (
+            "var u=new URL(window.top.location.href);"
+            f"u.searchParams.set('task_detail','{task_id}');"
+            "window.top.location.href=u.toString();"
+        )
+
     html = [f'<div style="font-family:\'Inter\',-apple-system,sans-serif;color:{text_color};background:{theme["app_bg"]};">']
+
+    html.append(f'<div style="position:sticky;top:0;z-index:5;background:{theme["app_bg"]};">')
 
     html.append(
         f'<div style="display:flex;border-bottom:2px solid {theme["accent"]};padding-bottom:6px;margin-bottom:2px;">'
@@ -460,13 +469,17 @@ def render_week_grid(tasks, plan_preview, week_dates, theme, calendar_events=Non
             for t in by_day_allday[d]:
                 color = project_color(t.get("project", "General"))
                 html.append(
-                    f'<div title="{xml_escape(t["title"])}" style="border-left:4px solid {color};'
+                    f'<a href="javascript:void(0)" onclick="{task_onclick(t["id"])}" '
+                    f'title="{xml_escape(t["title"])}" style="display:block;cursor:pointer;'
+                    f'text-decoration:none;color:inherit;border-left:4px solid {color};'
                     f'background:{color}22;border-radius:4px;padding:2px 6px;font-size:11px;'
                     f'font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
-                    f'{xml_escape(t["title"][:22])}</div>'
+                    f'{xml_escape(t["title"][:22])}</a>'
                 )
             html.append('</div>')
         html.append('</div>')
+
+    html.append('</div>')  # close sticky header+allday wrapper
 
     html.append(f'<div id="hourgrid" style="display:flex;position:relative;height:{body_height}px;">')
     html.append('<div style="width:52px;flex-shrink:0;position:relative;">')
@@ -496,11 +509,13 @@ def render_week_grid(tasks, plan_preview, week_dates, theme, calendar_events=Non
             color = project_color(t.get("project", "General"))
             is_done = t["column"] == "Done"
             html.append(
-                f'<div title="{xml_escape(t["title"])}" style="position:absolute;top:{top_px:.0f}px;'
+                f'<a href="javascript:void(0)" onclick="{task_onclick(t["id"])}" '
+                f'title="{xml_escape(t["title"])}" style="display:block;cursor:pointer;'
+                f'text-decoration:none;position:absolute;top:{top_px:.0f}px;'
                 f'height:{height_px:.0f}px;left:4px;right:4px;background:{color}33;'
                 f'border-left:4px solid {color};border-radius:6px;padding:4px 6px;overflow:hidden;'
                 f'font-size:12px;font-weight:600;opacity:{"0.5" if is_done else "1"};color:{text_color};">'
-                f'{xml_escape(t["title"][:34])}</div>'
+                f'{xml_escape(t["title"][:34])}</a>'
             )
         for ev, start_time, dur in cal_timed[d]:
             hh, mm = map(int, start_time.split(":"))
@@ -564,6 +579,39 @@ with toggle_col:
     if st.button("☀️ Light" if not LIGHT else "🌙 Dark", key="theme_toggle"):
         st.session_state.light_mode = not LIGHT
         st.rerun()
+
+
+@st.dialog("Task details")
+def show_task_detail(task):
+    st.markdown(f"### {task['title']}")
+    st.markdown(tag_pill(task.get("project", "General")), unsafe_allow_html=True)
+    badge = deadline_badge(task.get("deadline"))
+    if badge:
+        st.caption(badge)
+    st.caption(f"Column: {task['column']}" + (f" · Day: {task['day']}" if task.get("day") else ""))
+    if task.get("notes"):
+        st.write(task["notes"])
+    for att in task.get("attachments", []):
+        st.markdown(f"📎 [{att['name']}]({att['url']})")
+    st.divider()
+    col_del, col_close = st.columns(2)
+    if col_del.button("🗑️ Delete task", type="primary", key="dialog_delete"):
+        st.session_state.tasks = [t for t in st.session_state.tasks if t["id"] != task["id"]]
+        save(st.session_state.tasks)
+        st.query_params.clear()
+        st.rerun()
+    if col_close.button("Close", key="dialog_close"):
+        st.query_params.clear()
+        st.rerun()
+
+
+selected_task_id = st.query_params.get("task_detail")
+if selected_task_id:
+    selected_task = next((t for t in st.session_state.tasks if t["id"] == selected_task_id), None)
+    if selected_task:
+        show_task_detail(selected_task)
+    else:
+        st.query_params.clear()
 
 tab_board, tab_big_picture, tab_week = st.tabs(["📋 Board", "🧠 Big Picture", "🗓️ Week Plan"])
 
@@ -757,9 +805,10 @@ with tab_week:
         height=620, scrolling=True,
     )
     st.caption(
-        "Shaded blocks are timed by the AI plan · dashed blocks (📅) are from your Google Calendar · "
+        "Click a task (not a calendar event) to see details or delete it · "
+        "shaded blocks are timed by the AI plan · dashed blocks (📅) are from your Google Calendar · "
         "chips in \"All day\" are manually-assigned, no set time · 🇵🇹 marks Portuguese public holidays. "
-        "Scroll the grid to see the full day (00:00–23:00)."
+        "The day headers stay put while you scroll through the hours."
     )
 
     if plan_preview:
