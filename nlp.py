@@ -1,9 +1,16 @@
 import json
 import os
-from datetime import date
+from datetime import datetime
+from zoneinfo import ZoneInfo
 import anthropic
 
 client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+LISBON = ZoneInfo("Europe/Lisbon")
+
+
+def today_lisbon():
+    return datetime.now(LISBON).date()
 
 COLUMNS = ["Backlog", "This Week", "In Progress", "Done"]
 
@@ -62,7 +69,7 @@ def plan_week(tasks: list[dict]) -> dict:
         messages=[{
             "role": "user",
             "content": (
-                f"Today: {date.today().isoformat()} ({date.today().strftime('%A')})\n\n"
+                f"Today: {today_lisbon().isoformat()} ({today_lisbon().strftime('%A')})\n\n"
                 f"Active tasks:\n{task_list}"
             ),
         }],
@@ -107,7 +114,7 @@ def parse_command(user_message: str, tasks: list[dict]) -> dict:
         messages=[{
             "role": "user",
             "content": (
-                f"Today: {date.today().isoformat()}\n\n"
+                f"Today: {today_lisbon().isoformat()}\n\n"
                 f"Existing projects: {', '.join(existing_projects)}\n\n"
                 f"Current tasks:\n{task_list}\n\nMessage: {user_message}"
             )

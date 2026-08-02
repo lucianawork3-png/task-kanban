@@ -2,6 +2,7 @@ import math
 import uuid
 from datetime import date, datetime, timedelta
 from xml.sax.saxutils import escape as xml_escape
+from zoneinfo import ZoneInfo
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -16,8 +17,15 @@ import nlp
 import storage
 from nlp import WEEK_DAYS
 
+LISBON = ZoneInfo("Europe/Lisbon")
+
+
+def today_lisbon():
+    return datetime.now(LISBON).date()
+
+
 GRID_DAYS = WEEK_DAYS + ["Saturday", "Sunday"]
-PT_HOLIDAYS = holidays_lib.Portugal(years=range(date.today().year, date.today().year + 2))
+PT_HOLIDAYS = holidays_lib.Portugal(years=range(today_lisbon().year, today_lisbon().year + 2))
 
 try:
     import calendar_google
@@ -225,7 +233,7 @@ def deadline_badge(deadline):
         d = date.fromisoformat(deadline)
     except ValueError:
         return None
-    days = (d - date.today()).days
+    days = (d - today_lisbon()).days
     label = d.strftime("%d %b")
     if days < 0:
         return f"⚠️ Overdue ({label})"
@@ -358,7 +366,7 @@ def render_mind_map(tasks, theme):
 
 
 def current_week_dates(offset=0):
-    today = date.today()
+    today = today_lisbon()
     monday = today - timedelta(days=today.weekday()) + timedelta(weeks=offset)
     return {GRID_DAYS[i]: monday + timedelta(days=i) for i in range(len(GRID_DAYS))}
 
@@ -421,7 +429,7 @@ def render_week_grid(tasks, plan_preview, week_dates, theme, calendar_events=Non
     )
     for d in GRID_DAYS:
         dt = week_dates[d]
-        is_today = dt == date.today()
+        is_today = dt == today_lisbon()
         num_color = theme["accent"] if is_today else text_color
         holiday_name = PT_HOLIDAYS.get(dt)
         html.append(
@@ -569,7 +577,7 @@ with tab_board:
         tag_choice = col2.selectbox("Tag", tag_options, key="manual_tag_choice")
         new_tag = st.text_input("New tag name", key="manual_new_tag") if tag_choice == "+ New tag" else None
         has_deadline = st.checkbox("Set a deadline", key="manual_has_deadline")
-        deadline_val = st.date_input("Deadline", value=date.today(), key="manual_deadline") if has_deadline else None
+        deadline_val = st.date_input("Deadline", value=today_lisbon(), key="manual_deadline") if has_deadline else None
         notes = st.text_area("Notes (optional)", key="manual_notes")
         uploaded = st.file_uploader("Attach a file (optional)", key="manual_uploader")
         if st.button("Add card", key="manual_add_btn", type="primary"):
@@ -837,7 +845,7 @@ if flow and flow["stage"] == "tag":
 
 elif flow and flow["stage"] == "deadline":
     with st.chat_message("assistant"):
-        picked = st.date_input("Deadline", value=date.today(), key=f"deadline_picker_{flow['id']}")
+        picked = st.date_input("Deadline", value=today_lisbon(), key=f"deadline_picker_{flow['id']}")
         c1, c2 = st.columns(2)
         if c1.button("Set deadline", key=f"set_deadline_{flow['id']}"):
             flow["deadline"] = picked.isoformat()
