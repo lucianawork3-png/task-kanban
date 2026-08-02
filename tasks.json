@@ -1,18 +1,6 @@
 {
   "tasks": [
     {
-      "id": "b2bc3729",
-      "title": "Test",
-      "column": "Backlog",
-      "project": "Test",
-      "deadline": null,
-      "notes": null,
-      "attachments": [],
-      "day": null,
-      "start_time": null,
-      "duration_min": null
-    },
-    {
       "id": "bcc037a4",
       "title": "Test",
       "column": "Backlog",
@@ -30,6 +18,18 @@
       "column": "This Week",
       "project": "Test",
       "deadline": "2026-08-04",
+      "notes": null,
+      "attachments": [],
+      "day": null,
+      "start_time": null,
+      "duration_min": null
+    },
+    {
+      "id": "b2bc3729",
+      "title": "Test",
+      "column": "This Week",
+      "project": "Test",
+      "deadline": null,
       "notes": null,
       "attachments": [],
       "day": null,
