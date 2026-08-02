@@ -1,3 +1,16 @@
 {
-  "tasks": []
+  "tasks": [
+    {
+      "id": "337675f7",
+      "title": "levar camisas na gr\u00e1fica",
+      "column": "Backlog",
+      "project": "under MM",
+      "deadline": "2026-08-03",
+      "notes": null,
+      "attachments": [],
+      "day": null,
+      "start_time": null,
+      "duration_min": null
+    }
+  ]
 }
